@@ -25,7 +25,8 @@ jobs:
       - name: Set up RPM build tree
         run: |
           rpmdev-setuptree
-      
+          mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
+          
       - name: Copy sources and spec file
         run: |
           cp SOURCES/* /root/rpmbuild/SOURCES/

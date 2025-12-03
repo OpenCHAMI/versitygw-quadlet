@@ -1,0 +1,242 @@
+# VersityGW Quadlet
+
+RPM package for deploying [Versity S3 Gateway](https://github.com/versity/versitygw) using Podman Quadlet with internal IAM support and automated user/bucket bootstrapping.
+
+## Overview
+
+This package provides:
+
+- **Podman Quadlet unit** (`versitygw.container`) - Runs VersityGW as a systemd-managed container
+- **Secret generation service** (`versitygw-gensecrets.service`) - Creates root credentials on first run
+- **Bootstrap service** (`versitygw-bootstrap.service`) - Automatically provisions IAM users and buckets
+
+The gateway runs with a POSIX backend and internal IAM, exposing an S3-compatible API on port 7070.
+
+## Features
+
+- 🔒 **Automatic credential generation** - Root access/secret keys created securely on first install
+- 👥 **User provisioning** - Pre-configured IAM users with individual access keys
+- 🪣 **Bucket creation** - Per-user buckets automatically created and assigned
+- 🔄 **Idempotent** - Safe to re-run bootstrap operations
+- 📦 **Container-based** - Uses official VersityGW container image
+- 🔧 **Systemd-managed** - Full integration with systemd for lifecycle management
+
+## Requirements
+
+- RHEL/Rocky Linux/AlmaLinux 9+ (or compatible)
+- Podman
+- AWS CLI
+- OpenSSL
+
+## Installation
+
+### From Latest Release
+
+Download and install the latest RPM from GitHub Releases:
+
+```bash
+# Download the latest release RPM
+curl -LO $(curl -s https://api.github.com/repos/openchami/versity-quadlet/releases/latest | grep "browser_download_url.*\.rpm" | grep -v "\.src\.rpm" | cut -d '"' -f 4)
+
+# Install the RPM
+sudo dnf install ./versitygw-quadlet-*.noarch.rpm
+```
+
+Or download manually from the [releases page](https://github.com/openchami/versity-quadlet/releases/latest).
+
+### From Source
+
+Build the RPM:
+
+```bash
+# Install build tools
+sudo dnf install -y rpm-build rpmdevtools
+
+# Set up build tree
+rpmdev-setuptree
+
+# Copy sources and spec
+cp SOURCES/* ~/rpmbuild/SOURCES/
+cp versitygw-quadlet.spec ~/rpmbuild/SPECS/
+
+# Build
+rpmbuild -ba ~/rpmbuild/SPECS/versitygw-quadlet.spec
+
+# Install
+sudo dnf install ~/rpmbuild/RPMS/noarch/versitygw-quadlet-*.rpm
+```
+
+## Configuration
+
+### Customizing Users
+
+Edit `/usr/local/libexec/versitygw-bootstrap.sh` and modify the `USERS` array:
+
+```bash
+USERS=(
+  "slurmd"
+  "fabricmanager"
+  "myuser"
+)
+```
+
+### Changing the Gateway Endpoint
+
+Set the `GATEWAY_ENDPOINT` environment variable in `/etc/systemd/system/versitygw-bootstrap.service`:
+
+```ini
+Environment=GATEWAY_ENDPOINT=http://127.0.0.1:7070
+```
+
+## Usage
+
+### Starting Services
+
+```bash
+# Enable and start secret generation (one-time)
+sudo systemctl enable --now versitygw-gensecrets.service
+
+# Enable and start the gateway
+sudo systemctl enable --now versitygw.service
+
+# Bootstrap users and buckets
+sudo systemctl enable --now versitygw-bootstrap.service
+```
+
+### Accessing Credentials
+
+Root credentials are stored in `/etc/versitygw/secrets.env`:
+
+```bash
+sudo cat /etc/versitygw/secrets.env
+```
+
+Per-user credentials are in `/etc/versitygw/users.d/<username>.env`:
+
+```bash
+sudo cat /etc/versitygw/users.d/slurmd.env
+```
+
+### Testing the Gateway
+
+```bash
+# Configure AWS CLI with root credentials
+source /etc/versitygw/secrets.env
+aws configure set aws_access_key_id $ROOT_ACCESS_KEY
+aws configure set aws_secret_access_key $ROOT_SECRET_KEY
+aws configure set region us-east-1
+
+# List buckets
+aws --endpoint-url http://localhost:7070 s3 ls
+
+# Test with a user's credentials
+source /etc/versitygw/users.d/slurmd.env
+aws configure set aws_access_key_id $ACCESS_KEY
+aws configure set aws_secret_access_key $SECRET_KEY
+
+# Access user bucket
+aws --endpoint-url http://localhost:7070 s3 ls s3://slurmd-bucket/
+```
+
+## File Locations
+
+| Path | Description |
+|------|-------------|
+| `/usr/share/containers/systemd/versitygw.container` | Quadlet container definition |
+| `/etc/systemd/system/versitygw-gensecrets.service` | Secret generation service |
+| `/etc/systemd/system/versitygw-bootstrap.service` | User/bucket bootstrap service |
+| `/usr/local/libexec/versitygw-gensecrets.sh` | Secret generation script |
+| `/usr/local/libexec/versitygw-bootstrap.sh` | Bootstrap script |
+| `/etc/versitygw/secrets.env` | Root credentials (mode 0600) |
+| `/etc/versitygw/users.d/` | Per-user credentials directory |
+| `/var/lib/versitygw/data/` | S3 object storage (POSIX backend) |
+| `/var/lib/versitygw/iam/` | IAM database |
+
+## Service Management
+
+```bash
+# Check gateway status
+sudo systemctl status versitygw.service
+
+# View logs
+sudo journalctl -u versitygw.service -f
+
+# Restart gateway
+sudo systemctl restart versitygw.service
+
+# Re-run bootstrap (idempotent)
+sudo systemctl restart versitygw-bootstrap.service
+
+# Regenerate secrets (removes existing!)
+sudo rm /etc/versitygw/secrets.env
+sudo systemctl restart versitygw-gensecrets.service
+```
+
+## Troubleshooting
+
+### Gateway not starting
+
+Check if the container image is available:
+
+```bash
+podman images | grep versitygw
+```
+
+Pull manually if needed:
+
+```bash
+podman pull ghcr.io/versity/versitygw:latest
+```
+
+### Bootstrap failing
+
+Check logs for the bootstrap service:
+
+```bash
+sudo journalctl -u versitygw-bootstrap.service -n 50
+```
+
+Ensure the gateway is responding:
+
+```bash
+curl -v http://localhost:7070
+```
+
+### Permissions issues
+
+Verify directory permissions:
+
+```bash
+ls -la /etc/versitygw/
+ls -la /var/lib/versitygw/
+```
+
+## Development
+
+### Building with GitHub Actions
+
+This repository includes a GitHub Actions workflow that automatically builds RPMs on push:
+
+```yaml
+# Triggered on push to main/master or manually
+gh workflow run build-rpm.yml
+```
+
+Built RPMs are available as workflow artifacts.
+
+## License
+
+MIT
+
+## Contributing
+
+Contributions welcome! Please open an issue or pull request.
+
+## Related Projects
+
+- [VersityGW](https://github.com/versity/versitygw) - The Versity S3 Gateway
+- [OpenCHAMI](https://github.com/openchami) - OpenCHAMI project
+
+## Authors
+
+- Your Name <alovelltroy@lanl.gov>

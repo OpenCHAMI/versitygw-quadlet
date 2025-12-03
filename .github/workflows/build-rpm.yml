@@ -1,0 +1,57 @@
+name: Build RPM
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-rpm:
+    runs-on: ubuntu-latest
+    
+    container:
+      image: rockylinux:9
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install RPM build tools
+        run: |
+          dnf install -y rpm-build rpmdevtools dnf-plugins-core
+      
+      - name: Set up RPM build tree
+        run: |
+          rpmdev-setuptree
+      
+      - name: Copy sources and spec file
+        run: |
+          cp SOURCES/* /root/rpmbuild/SOURCES/
+          cp versitygw-quadlet.spec /root/rpmbuild/SPECS/
+      
+      - name: Install build dependencies
+        run: |
+          dnf builddep -y /root/rpmbuild/SPECS/versitygw-quadlet.spec || true
+      
+      - name: Build RPM
+        run: |
+          rpmbuild -ba /root/rpmbuild/SPECS/versitygw-quadlet.spec
+      
+      - name: List built RPMs
+        run: |
+          echo "Built RPMs:"
+          ls -lh /root/rpmbuild/RPMS/noarch/
+          echo ""
+          echo "Source RPMs:"
+          ls -lh /root/rpmbuild/SRPMS/
+      
+      - name: Upload RPMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpms
+          path: |
+            /root/rpmbuild/RPMS/noarch/*.rpm
+            /root/rpmbuild/SRPMS/*.rpm
+          retention-days: 30

@@ -1,0 +1,34 @@
+# versitygw.container
+# Podman Quadlet for Versity S3 Storage Gateway with internal IAM
+
+[Unit]
+Description=Versity S3 Storage Gateway
+Wants=network-online.target
+After=network-online.target
+Requires=versitygw-gensecrets.service
+After=versitygw-gensecrets.service
+
+[Container]
+Image=ghcr.io/versity/versitygw:latest
+ContainerName=versitygw
+
+# POSIX backend at /data
+Exec=posix /data
+
+# Root creds and region from gensecrets
+EnvironmentFile=/etc/versitygw/secrets.env
+
+# Enable internal IAM
+Environment=VGW_IAM_DIR=/var/lib/versitygw/iam
+
+# Data and IAM store
+Volume=/var/lib/versitygw/data:/data:Z
+Volume=/var/lib/versitygw/iam:/var/lib/versitygw/iam:Z
+
+# Expose S3 endpoint
+PublishPort=7070:7070
+
+RestartPolicy=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Bootstrap VersityGW IAM users and buckets
+Requires=versitygw.service versitygw-gensecrets.service
+After=versitygw.service versitygw-gensecrets.service
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/versitygw/secrets.env
+Environment=GATEWAY_ENDPOINT=http://127.0.0.1:7070
+ExecStart=/usr/local/libexec/versitygw-bootstrap.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

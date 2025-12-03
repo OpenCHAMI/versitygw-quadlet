@@ -17,7 +17,7 @@ Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
 Requires:       podman
-Requires:       aws-cli
+Requires:       awscli
 Requires:       openssl
 
 %description
@@ -93,9 +93,18 @@ fi
 #       enable them as appropriate:
 #       systemctl enable --now versitygw-gensecrets.service versitygw.service versitygw-bootstrap.service
 
-# Optionally, ensure quadlet units are re-generated into systemd:
+# Ensure quadlet units are re-generated into systemd services.
+# The quadlet generator runs during daemon-reload and creates versitygw.service
 if command -v systemctl >/dev/null 2>&1; then
     systemctl daemon-reload || :
+fi
+
+# Verify that the quadlet service was generated
+if command -v systemctl >/dev/null 2>&1; then
+    if ! systemctl list-unit-files versitygw.service >/dev/null 2>&1; then
+        echo "WARNING: versitygw.service was not generated from quadlet unit." >&2
+        echo "You may need to run 'systemctl daemon-reload' manually." >&2
+    fi
 fi
 
 

@@ -28,7 +28,8 @@ Volume=/var/lib/versitygw/iam:/var/lib/versitygw/iam:Z
 # Expose S3 endpoint
 PublishPort=7070:7070
 
-RestartPolicy=always
+[Service]
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

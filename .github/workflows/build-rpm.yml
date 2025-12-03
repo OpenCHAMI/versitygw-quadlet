@@ -3,9 +3,14 @@ name: Build RPM
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-rpm:
@@ -25,34 +30,50 @@ jobs:
       - name: Set up RPM build tree
         run: |
           rpmdev-setuptree
-          mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
           
       - name: Copy sources and spec file
         run: |
-          cp SOURCES/* /root/rpmbuild/SOURCES/
-          cp versitygw-quadlet.spec /root/rpmbuild/SPECS/
+          cp SOURCES/* $HOME/rpmbuild/SOURCES/
+          cp versitygw-quadlet.spec $HOME/rpmbuild/SPECS/
       
       - name: Install build dependencies
         run: |
-          dnf builddep -y /root/rpmbuild/SPECS/versitygw-quadlet.spec || true
+          dnf builddep -y $HOME/rpmbuild/SPECS/versitygw-quadlet.spec
       
       - name: Build RPM
         run: |
-          rpmbuild -ba /root/rpmbuild/SPECS/versitygw-quadlet.spec
+          rpmbuild -ba $HOME/rpmbuild/SPECS/versitygw-quadlet.spec
+      
+      - name: Get package version
+        id: get_version
+        run: |
+          VERSION=$(rpm -q --queryformat '%{VERSION}-%{RELEASE}' --specfile $HOME/rpmbuild/SPECS/versitygw-quadlet.spec | head -1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Package version: $VERSION"
       
       - name: List built RPMs
         run: |
           echo "Built RPMs:"
-          ls -lh /root/rpmbuild/RPMS/noarch/
+          ls -lh $HOME/rpmbuild/RPMS/noarch/
           echo ""
           echo "Source RPMs:"
-          ls -lh /root/rpmbuild/SRPMS/
+          ls -lh $HOME/rpmbuild/SRPMS/
       
-      - name: Upload RPMs
+      - name: Upload RPMs as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rpms
+          name: versitygw-quadlet-${{ steps.get_version.outputs.version }}-el9
           path: |
-            /root/rpmbuild/RPMS/noarch/*.rpm
-            /root/rpmbuild/SRPMS/*.rpm
+            ~/rpmbuild/RPMS/noarch/*.rpm
+            ~/rpmbuild/SRPMS/*.rpm
           retention-days: 30
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ~/rpmbuild/RPMS/noarch/*.rpm
+            ~/rpmbuild/SRPMS/*.rpm
+          draft: false
+          prerelease: false

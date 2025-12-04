@@ -35,13 +35,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
       
+      - name: Enable PowerTools/CRB for RHEL 8
+        if: matrix.os.tag == 'el8'
+        run: |
+          # UBI8 containers have limited repos - install EPEL for additional packages
+          dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm || true
+      
       - name: Install RPM build tools
         run: |
-          dnf install -y rpm-build rpmdevtools dnf-plugins-core
+          if [ "${{ matrix.os.tag }}" = "el8" ]; then
+            dnf install -y rpm-build dnf-plugins-core
+          else
+            dnf install -y rpm-build rpmdevtools dnf-plugins-core
+          fi
       
       - name: Set up RPM build tree
         run: |
-          rpmdev-setuptree
+          # Manually create rpmbuild structure (works with or without rpmdevtools)
+          mkdir -p $HOME/rpmbuild/{BUILD,RPMS,noarch,SOURCES,SPECS,SRPMS}
+          echo "%_topdir $HOME/rpmbuild" > $HOME/.rpmmacros
           
       - name: Copy sources and spec file
         run: |

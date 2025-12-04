@@ -15,9 +15,18 @@ permissions:
 jobs:
   build-rpm:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: 
+          - name: rockylinux
+            version: 9
+            tag: el9
+          - name: rockylinux
+            version: 10
+            tag: el10
     
     container:
-      image: rockylinux:9
+      image: ${{ matrix.os.name }}:${{ matrix.os.version }}
     
     steps:
       - name: Checkout code
@@ -62,7 +71,7 @@ jobs:
       - name: Upload RPMs as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: versitygw-quadlet-${{ steps.get_version.outputs.version }}-el9
+          name: versitygw-quadlet-${{ steps.get_version.outputs.version }}-${{ matrix.os.tag }}
           path: |
             ~/rpmbuild/RPMS/noarch/*.rpm
             ~/rpmbuild/SRPMS/*.rpm

@@ -18,11 +18,11 @@ jobs:
     strategy:
       matrix:
         os: 
-          - name: rockylinux
-            version: 9
+          - name: registry.access.redhat.com/ubi9
+            version: latest
             tag: el9
-          - name: rockylinux
-            version: 10
+          - name: registry.access.redhat.com/ubi10
+            version: latest
             tag: el10
     
     container:

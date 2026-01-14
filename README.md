@@ -36,7 +36,7 @@ Download and install the latest RPM from GitHub Releases:
 
 ```bash
 # Download the latest release RPM
-curl -LO $(curl -s https://api.github.com/repos/openchami/versity-quadlet/releases/latest | grep "browser_download_url.*\.rpm" | grep -v "\.src\.rpm" | cut -d '"' -f 4)
+curl -LO $(curl -s https://api.github.com/repos/openchami/versitygw-quadlet/releases/latest | grep "browser_download_url.*\.rpm" | grep -v "\.src\.rpm" | cut -d '"' -f 4)
 
 # Install the RPM
 sudo dnf install ./versitygw-quadlet-*.noarch.rpm

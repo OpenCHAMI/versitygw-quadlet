@@ -136,8 +136,8 @@ aws --endpoint-url http://localhost:7070 s3 ls
 
 # Test with a user's credentials
 source /etc/versitygw/users.d/slurmd.env
-aws configure set aws_access_key_id $ACCESS_KEY
-aws configure set aws_secret_access_key $SECRET_KEY
+aws configure set aws_access_key_id $VGW_ACCESS_KEY
+aws configure set aws_secret_access_key $VGW_SECRET_KEY
 
 # Access user bucket
 aws --endpoint-url http://localhost:7070 s3 ls s3://slurmd-bucket/

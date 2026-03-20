@@ -21,6 +21,9 @@ EnvironmentFile=/etc/versitygw/secrets.env
 # Enable internal IAM
 Environment=VGW_IAM_DIR=/var/lib/versitygw/iam
 
+# Enable health check endpoint
+Environment=VGW_HEALTH=/health
+
 # Data and IAM store
 Volume=/var/lib/versitygw/data:/data:Z
 Volume=/var/lib/versitygw/iam:/var/lib/versitygw/iam:Z

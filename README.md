@@ -230,7 +230,7 @@ sudo journalctl -u versitygw-bootstrap.service -n 50
 Ensure the gateway is responding:
 
 ```bash
-curl -v http://localhost:7070
+curl -v http://localhost:7070/health
 ```
 
 ### Permissions issues

@@ -34,7 +34,7 @@ USERS=(
 # ------------------------------------------------------------------------------
 echo "bootstrap: waiting for VersityGW at ${GATEWAY_ENDPOINT}..."
 for i in {1..60}; do
-  if curl -sSf "${GATEWAY_ENDPOINT}" >/dev/null 2>&1; then
+  if curl -sSf "${GATEWAY_ENDPOINT}/health" >/dev/null 2>&1; then
     echo "bootstrap: gateway is up."
     break
   fi

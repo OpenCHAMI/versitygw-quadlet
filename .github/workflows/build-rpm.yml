@@ -33,7 +33,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       
       - name: Enable PowerTools/CRB for RHEL 8
         if: matrix.os.tag == 'el8'
@@ -102,7 +102,7 @@ jobs:
       
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2.5.0
+        uses: softprops/action-gh-release@v3.0.1
         with:
           files: release-files/*.rpm
           draft: false

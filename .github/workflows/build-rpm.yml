@@ -92,7 +92,7 @@ jobs:
           ls -lh release-files/
       
       - name: Upload RPMs as artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: versitygw-quadlet-${{ steps.get_version.outputs.version }}-${{ matrix.os.tag }}
           path: |

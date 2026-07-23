@@ -9,7 +9,7 @@ Requires=versitygw-gensecrets.service
 After=versitygw-gensecrets.service
 
 [Container]
-Image=ghcr.io/versity/versitygw:latest
+Image=ghcr.io/versity/versitygw:v1.7.0
 ContainerName=versitygw
 
 # POSIX backend at /data

@@ -66,6 +66,19 @@ ROOT_PROFILE="vgw-root"
 mkdir -p /root/.aws
 chmod 700 /root/.aws
 
+# Pin the region for the AWS CLI calls below. VersityGW validates the region in the
+# SigV4 credential scope against its own --region (VGW_REGION, default us-east-1), so
+# the two have to agree. With no region configured anywhere, botocore instead queries
+# the EC2 instance metadata service and derives one by stripping the last character of
+# placement/availability-zone. That is correct on AWS (us-east-1a -> us-east-1) and
+# wrong elsewhere: OpenStack answers the same endpoint with the Nova availability-zone
+# name, so "rack-5" becomes the invalid region "rack-" and the CLI aborts, while
+# "rack-11" becomes the valid-but-wrong "rack-1" and quietly costs a retry on every
+# call. VGW_REGION reaches us from secrets.env via the unit's EnvironmentFile.
+export AWS_REGION="${VGW_REGION:-us-east-1}"
+export AWS_DEFAULT_REGION="${AWS_REGION}"   # AWS CLI v1 reads this spelling
+export AWS_EC2_METADATA_DISABLED=true       # nothing here needs IMDS; skip the lookup
+
 cat > /root/.aws/credentials <<EOF
 [${ROOT_PROFILE}]
 aws_access_key_id     = ${ROOT_ACCESS}
